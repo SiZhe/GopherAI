@@ -16,8 +16,10 @@
 你可以上传专属于该对话的文件(目前仅限于.md)以构建知识库。
 > **未构建知识库**
 ![未构建知识库](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E6%9C%AA%E6%9E%84%E5%BB%BA%E7%9F%A5%E8%AF%86%E5%BA%93.png)
+
 > **上传文件**
 ![上传文件](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6.png)
+
 > **已构建知识库**
 ![已构建知识库](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E5%B7%B2%E6%9E%84%E5%BB%BA%E7%9F%A5%E8%AF%86%E5%BA%93.png)
 
