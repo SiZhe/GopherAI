@@ -25,15 +25,21 @@
         <button class="sync-btn" @click="syncHistory" :disabled="!currentSessionId || tempSession">同步历史数据</button>
         <label for="modelType">选择模型：</label>
         <select id="modelType" v-model="selectedModel" class="model-select">
-          <option value="DOUBAO_SEED_V16">DouBao-Seed-V1.6</option>
-          <option value="DOUBAO_SEED_V16_LITE">DouBao-Seed-V1.6-lite</option>
-          <option value="DOUBAO_SEED_CODE">DouBao-Seed-Code</option>
-          <option value="DEEPSEEK_V32">DeepSeek-V3.2</option>
+          <option value="DOUBAO_SEED_20">豆包-Seed-2.0</option>
+          <option value="DEEPSEEK_V32">DeepSeek-3.2</option>
         </select>
         <label for="streamingMode" style="margin-left: 20px;">
           <input type="checkbox" id="streamingMode" v-model="isStreaming" />
           流式响应
         </label>
+        <button class="upload-btn" @click="triggerFileUpload" :disabled="uploading">📎 上传文档(.md)</button>
+        <input
+          ref="fileInput"
+          type="file"
+          accept=".md,.txt,text/markdown,text/plain"
+          style="display: none"
+          @change="handleFileUpload"
+        />
       </div>
 
       <div class="chat-messages" ref="messagesRef">
@@ -84,16 +90,18 @@ export default {
   name: 'AIChat',
   setup() {
 
-    const sessions = ref({})               
-    const currentSessionId = ref(null)    
-    const tempSession = ref(false)        
-    const currentMessages = ref([])      
+    const sessions = ref({})
+    const currentSessionId = ref(null)
+    const tempSession = ref(false)
+    const currentMessages = ref([])
     const inputMessage = ref('')
     const loading = ref(false)
     const messagesRef = ref(null)
     const messageInput = ref(null)
-    const selectedModel = ref('DOUBAO_SEED_V16')
+    const selectedModel = ref('1')
     const isStreaming = ref(false)
+    const uploading = ref(false)
+    const fileInput = ref(null)
 
 
     const renderMarkdown = (text) => {
@@ -107,12 +115,61 @@ export default {
 
     const playTTS = async (text) => {
       try {
-        const response = await api.post('/chat/tts', { text })
-        if (response.data && response.data.status_code === 1000 && response.data.url) {
-          const audio = new Audio(response.data.url)
-          audio.play()
+        // 创建TTS任务
+        const createResponse = await api.post('/AI/chat/tts', { text })
+        if (createResponse.data && createResponse.data.status_code === 1000 && createResponse.data.task_id) {
+          const taskId = createResponse.data.task_id
+          
+          // 先等待5秒钟再开始轮询
+          await new Promise(resolve => setTimeout(resolve, 5000))
+          
+          // 轮询查询任务结果
+          const maxAttempts = 30
+          const pollInterval = 2000
+          let attempts = 0
+          
+          const pollResult = async () => {
+            const queryResponse = await api.get('/AI/chat/tts/query', { params: { task_id: taskId } })
+            
+            if (queryResponse.data && queryResponse.data.status_code === 1000) {
+              const taskStatus = queryResponse.data.task_status
+                
+              if (taskStatus === 'Success' && queryResponse.data.task_result) {
+                // 任务完成，播放音频
+                // 后端返回的 task_result 是直接的 URL 字符串
+                const audio = new Audio(queryResponse.data.task_result)
+                audio.play()
+                return true
+              } else if (taskStatus === 'Running' ||taskStatus === 'Created' ) {
+                // 任务进行中，继续轮询
+                attempts++
+                if (attempts < maxAttempts) {
+                  await new Promise(resolve => setTimeout(resolve, pollInterval))
+                  return await pollResult()
+                } else {
+                  ElMessage.error('语音合成超时')
+                  return true
+                }
+              } else {
+                // 其他状态（如失败）
+                ElMessage.error('语音合成失败')
+                return true
+              }
+            }
+            
+            attempts++
+            if (attempts < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, pollInterval))
+              return await pollResult()
+            } else {
+              ElMessage.error('语音合成超时')
+              return true
+            }
+          }
+          
+          await pollResult()
         } else {
-          ElMessage.error('无法获取语音')
+          ElMessage.error('无法创建语音合成任务')
         }
       } catch (error) {
         console.error('TTS error:', error)
@@ -456,6 +513,64 @@ export default {
       }
     }
 
+    const triggerFileUpload = () => {
+      if (fileInput.value) {
+        fileInput.value.click()
+      }
+    }
+
+    const handleFileUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      // 前端校验：只允许.md或.txt文件
+      const fileName = file.name.toLowerCase()
+      if (!fileName.endsWith('.md')) {
+        ElMessage.error('只允许上传 .md 文件')
+        // 清空文件输入
+        if (fileInput.value) {
+          fileInput.value.value = ''
+        }
+        return
+      }
+
+      // 前端校验：必须要想着一个对话
+      const sessionId = currentSessionId.value
+      if (!sessionId || sessionId === 'temp') {
+        ElMessage.warning('请先选择或创建一个会话再上传文件')
+        if (fileInput.value) fileInput.value.value = ''
+        return
+      }
+
+      try {
+        uploading.value = true
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('sessionId', sessionId)
+        
+        const response = await api.post('/file/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+
+        if (response.data && response.data.status_code === 1000) {
+          ElMessage.success(`文件上传成功`)
+        } else {
+          ElMessage.error(response.data?.status_msg || '上传失败')
+        }
+      } catch (error) {
+        console.error('File upload error:', error)
+        ElMessage.error('文件上传失败')
+      } finally {
+        uploading.value = false
+        // 清空文件输入
+        if (fileInput.value) {
+          fileInput.value.value = ''
+        }
+      }
+    }
+
     onMounted(() => {
       loadSessions()
     })
@@ -472,12 +587,16 @@ export default {
       messageInput,
       selectedModel,
       isStreaming,
+      uploading,
+      fileInput,
       renderMarkdown,
       playTTS,
       createNewSession,
       switchSession,
       syncHistory,
-      sendMessage
+      sendMessage,
+      triggerFileUpload,
+      handleFileUpload
     }
   }
 }
@@ -673,6 +792,30 @@ export default {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.upload-btn {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.2);
+  transition: all 0.2s ease;
+}
+
+.upload-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245, 87, 108, 0.3);
+}
+
+.upload-btn:disabled {
+  background: #ccc;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .chat-messages {

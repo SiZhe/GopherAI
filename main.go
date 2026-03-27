@@ -4,11 +4,38 @@ import (
 	"GopherAI/common/mysql"
 	"GopherAI/common/rabbitmq"
 	"GopherAI/common/redis"
+	"GopherAI/config"
 	"GopherAI/router"
 	"log"
 )
 
+//func main() {
+//	config.GetConfig()
+//	err := rag.CreateUploadsDir("1765477265", "1")
+//	if err != nil {
+//		return
+//	}
+//
+//	//StoreUploadsFiles()
+//	pwd, _ := os.Getwd()
+//	fmt.Println("pwd:%s", pwd)
+//	filePath := filepath.Join("uploads_files", "1765477265", "1", "document.md")
+//	fmt.Println("filePath:%s", filePath)
+//
+//	docs, err := rag.TransformerUploadsFiles(context.Background(), filePath)
+//	if err != nil {
+//		return
+//	}
+//
+//	err = rag.EmbeddingUploadsFiles(context.Background(), docs)
+//	if err != nil {
+//		return
+//	}
+//}
+
 func main() {
+	//初始化config和env
+	config.GetConfig()
 	//初始化mysql
 	err := mysql.InitMysql()
 	if err != nil {

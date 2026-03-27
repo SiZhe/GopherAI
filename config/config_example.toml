@@ -1,0 +1,42 @@
+[mainConfig]
+appName = "GopherAI"
+host = "0.0.0.0"
+port = 8888
+
+[mysqlConfig]
+host = "127.0.0.1"
+port = 3306
+user = "root"
+password = "********"
+databaseName = "GopherAI"
+charset =  "utf8mb4"
+
+[redisConfig]
+host = "127.0.0.1"
+port = 6379
+password = ""
+db = 0
+
+[emailConfig]
+authcode = "********"
+email = "**********"
+
+[jwtConfig]
+expire_duration= 168
+issuer = "Lisizhe"
+subject= "GopherAI"
+key= "********"
+
+[rabbitmqConfig]
+host= "127.0.0.1"
+port= 5672
+username= "root"
+password= "********"
+vhost= "/"
+
+[milvusConfig]
+address= "localhost:19530"
+databaseName="GopherAI"
+
+[ragConfig]
+topK=3

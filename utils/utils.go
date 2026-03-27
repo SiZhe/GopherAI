@@ -2,13 +2,20 @@ package utils
 
 import (
 	"GopherAI/common/mysql/model"
+	"regexp"
+
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
+	"mime/multipart"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudwego/eino/schema"
+	"github.com/google/uuid"
 )
 
 // 获得随机数
@@ -22,6 +29,11 @@ func GetRandomNumbers(num int) string {
 		code += strconv.Itoa(digit)
 	}
 	return code
+}
+
+// 生成唯一id
+func GenerateUUID() string {
+	return uuid.New().String()
 }
 
 // MD5 MD5加密
@@ -54,4 +66,19 @@ func ConvertToSchemaMessages(msgs []*model.Message) []*schema.Message {
 		})
 	}
 	return schemaMsgs
+}
+
+// ValidateFile 校验文件是否为允许的文本文件（.md）
+func ValidateFile(file *multipart.FileHeader) error {
+	// 校验文件扩展名
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if ext != ".md" {
+		return fmt.Errorf("文件类型不正确，只允许 .md，当前扩展名: %s", ext)
+	}
+	return nil
+}
+
+// 清除milvus表名称的违规符号
+func CleanViolateSymbols(s string) string {
+	return regexp.MustCompile(`[^a-zA-Z0-9_]`).ReplaceAllString(s, "")
 }

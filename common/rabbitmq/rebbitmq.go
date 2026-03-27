@@ -27,7 +27,7 @@ func initConn() {
 	}
 }
 
-// RabbitMQ RabbitMQ结构体
+// RabbitMQ结构体
 type RabbitMQ struct {
 	conn     *amqp.Connection
 	channel  *amqp.Channel
@@ -46,8 +46,8 @@ func newRabbitMQ(exchange string, key string) *RabbitMQ {
 	return &RabbitMQ{Exchange: exchange, Key: key}
 }
 
-// NewWorkRabbitMQ 创建Work模式的RabbitMQ实例
-func NewWorkRabbitMQ(queue string) *RabbitMQ {
+// 创建Work模式的RabbitMQ实例
+func newWorkRabbitMQ(queue string) *RabbitMQ {
 	// new rabbitmq
 	rabbitmq := newRabbitMQ("", queue)
 
@@ -67,9 +67,8 @@ func NewWorkRabbitMQ(queue string) *RabbitMQ {
 	return rabbitmq
 }
 
-// Publish 发送消息
+// 发送消息
 func (r *RabbitMQ) Publish(message []byte) error {
-	// 创建队列（不存在时）
 	// 使用默认交换机的情况下，queue即为key
 	_, err := r.channel.QueueDeclare(
 		r.Key,
@@ -125,6 +124,7 @@ func (r *RabbitMQ) Consume(handle func(msg *amqp.Delivery) error) {
 
 	// 处理消息
 	for msg := range msgs {
+		// handle 将 rabbitmq的body转化为数据库消息
 		err := handle(&msg)
 		if err != nil {
 			fmt.Println(err.Error())

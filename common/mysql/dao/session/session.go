@@ -3,10 +3,19 @@ package session
 import (
 	"GopherAI/common/mysql"
 	"GopherAI/common/mysql/model"
+	"GopherAI/rag"
+	"fmt"
 )
 
 func CreateSession(session *model.Session) (*model.Session, error) {
-	err := mysql.DB.Create(session).Error
+	// 创建对话的时候创建一个文件夹
+	err := rag.CreateUploadsDir(session.UserName, session.ID)
+	fmt.Println(session.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mysql.DB.Create(session).Error
 	return session, err
 }
 

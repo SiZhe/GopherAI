@@ -1,3 +1,7 @@
+/*
+/ 一个对话一个aihelper
+*/
+
 package aihelper
 
 import (
@@ -7,32 +11,14 @@ import (
 
 var ctx = context.Background()
 
-// AIHelperManager AI助手管理器，管理用户-会话-AIHelper的映射关系
+// AI助手管理器，管理用户-会话-AIHelper的映射关系
 type AIHelperManager struct {
 	helpers map[string]map[string]*AIHelper // map[用户账号（唯一）]map[会话ID]*AIHelper
 	mtx     sync.RWMutex
 }
 
-// 全局管理器实例
-var globalManager *AIHelperManager
-var managerOnce sync.Once
-
-// NewAIHelperManager 创建新的管理器实例
-func NewAIHelperManager() *AIHelperManager {
-	return &AIHelperManager{
-		helpers: make(map[string]map[string]*AIHelper),
-	}
-}
-
-func GetGlobalManager() *AIHelperManager {
-	managerOnce.Do(func() {
-		globalManager = NewAIHelperManager()
-	})
-	return globalManager
-}
-
 // 获取或创建AIHelper
-func (m *AIHelperManager) GetOrCreateAIHelper(userName string, sessionID string, modelType string, config map[string]interface{}) (*AIHelper, error) {
+func (m *AIHelperManager) GetOrCreateAIHelper(userName string, sessionID string, modelType string, config map[string]string) (*AIHelper, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -108,4 +94,22 @@ func (m *AIHelperManager) GetUserSessions(userName string) []string {
 	}
 
 	return sessionIDs
+}
+
+// 全局管理器实例
+var globalManager *AIHelperManager
+var managerOnce sync.Once
+
+// 创建新的管理器实例
+func newAIHelperManager() *AIHelperManager {
+	return &AIHelperManager{
+		helpers: make(map[string]map[string]*AIHelper),
+	}
+}
+
+func GetGlobalManager() *AIHelperManager {
+	managerOnce.Do(func() {
+		globalManager = newAIHelperManager()
+	})
+	return globalManager
 }

@@ -44,9 +44,9 @@ func CreateGenerateSessionAndSendMessage(userName string, userQuestion string, m
 	}
 
 	//2：获取AIHelper并通过其管理消息
-	config := map[string]interface{}{
-		// ark 直接读config
-		"apiKey": "your-api-key", // TODO: 从配置中获取
+	config := map[string]string{
+		"username":  userName,
+		"sessionId": createdSession.ID,
 	}
 	helper, err := aihelper.GetGlobalManager().GetOrCreateAIHelper(userName, createdSession.ID, modelType, config)
 	if err != nil {
@@ -66,8 +66,9 @@ func CreateGenerateSessionAndSendMessage(userName string, userQuestion string, m
 
 func ChatGenerateSend(userName string, sessionID string, userQuestion string, modelType string) (string, code.Code) {
 	//1：获取AIHelper
-	config := map[string]interface{}{
-		"apiKey": "your-api-key", // TODO: 从配置中获取
+	config := map[string]string{
+		"username":  userName,
+		"sessionId": sessionID,
 	}
 	helper, err := aihelper.GetGlobalManager().GetOrCreateAIHelper(userName, sessionID, modelType, config)
 	if err != nil {
@@ -111,8 +112,9 @@ func StreamMessageToExistingSession(userName string, sessionID string, userQuest
 		return code.CodeServerBusy
 	}
 
-	config := map[string]interface{}{
-		"apiKey": "your-api-key", // TODO: 从配置中获取
+	config := map[string]string{
+		"username":  userName,
+		"sessionId": sessionID,
 	}
 	helper, err := aihelper.GetGlobalManager().GetOrCreateAIHelper(userName, sessionID, modelType, config)
 	if err != nil {

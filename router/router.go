@@ -22,7 +22,10 @@ func readDataFromDB() error {
 	// 遍历数据库消息
 	for i := range msgs {
 		msg := &msgs[i]
-		config_ := make(map[string]interface{})
+		config_ := map[string]string{
+			"username":  msg.UserName,
+			"sessionId": msg.SessionID,
+		}
 
 		// 创建对应的 AIHelper
 		helper, err := aihelper.GetGlobalManager().GetOrCreateAIHelper(msg.UserName, msg.SessionID, msg.ModelType, config_)
@@ -42,16 +45,24 @@ func readDataFromDB() error {
 func initRouter() *gin.Engine {
 	r := gin.Default()
 	//gin.SetMode("release")
-	enterRouter := r.Group("/api/v1")
+
+	enterRouter := r.Group("/api/v2")
 	{
 		UserGroup := enterRouter.Group("/user")
 		RegisterUserRouter(UserGroup)
 	}
+
 	//后续登录的接口需要jwt鉴权
 	{
 		AIGroup := enterRouter.Group("/AI")
 		AIGroup.Use(jwt.Auth)
 		AIRouter(AIGroup)
+	}
+
+	{
+		FileGroup := enterRouter.Group("/file")
+		FileGroup.Use(jwt.Auth)
+		FileRouter(FileGroup)
 	}
 	return r
 }

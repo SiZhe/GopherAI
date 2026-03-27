@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
+	"github.com/joho/godotenv"
 )
 
 // mysql
@@ -54,6 +55,16 @@ type RabbitmqConfig struct {
 	RabbitmqVhost    string `toml:"vhost"`
 }
 
+type MilvusConfig struct {
+	MilvusAddress string `toml:"address"`
+	MilvusDb      string `toml:"databaseName"`
+	//MilvusCollection string `toml:"collection"`
+}
+
+type RagConfig struct {
+	TopK int `toml:"topK"`
+}
+
 type MainConfig struct {
 	Port    int    `toml:"port"`
 	AppName string `toml:"appName"`
@@ -66,7 +77,9 @@ type Config struct {
 	EmailConfig    `toml:"emailConfig"`
 	JwtConfig      `toml:"jwtConfig"`
 	RabbitmqConfig `toml:"rabbitmqConfig"`
+	MilvusConfig   `toml:"milvusConfig"`
 	MainConfig     `toml:"mainConfig"`
+	RagConfig      `toml:"ragConfig"`
 }
 
 var config *Config
@@ -86,6 +99,10 @@ func GetConfig() *Config {
 	once.Do(func() {
 		config = new(Config)
 		_ = InitConfig()
+		err := godotenv.Load(".env")
+		if err != nil {
+			panic(err)
+		}
 	})
 	return config
 }

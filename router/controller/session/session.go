@@ -48,12 +48,13 @@ func CreateGenerateSessionAndSendMessage(c *gin.Context) {
 	req := new(CreateSessionAndSendMessageRequest)
 	res := new(CreateSessionAndSendMessageResponse)
 	userName := c.GetString("userName") // From JWT middleware
+	fmt.Println(userName)
 	if err := c.ShouldBindJSON(req); err != nil {
 		c.JSON(http.StatusOK, res.CodeOf(code.CodeInvalidParams))
 		return
 	}
 	//内部会创建会话并发送消息，并会将AI回答、当前会话返回
-	session_id, aiInformation, code_ := session.CreateGenerateSessionAndSendMessage(userName, req.UserQuestion, req.ModelType)
+	sessionId, aiInformation, code_ := session.CreateGenerateSessionAndSendMessage(userName, req.UserQuestion, req.ModelType)
 
 	if code_ != code.CodeSuccess {
 		c.JSON(http.StatusOK, res.CodeOf(code_))
@@ -61,7 +62,7 @@ func CreateGenerateSessionAndSendMessage(c *gin.Context) {
 	}
 
 	res.Success()
-	res.SessionID = session_id
+	res.SessionID = sessionId
 	res.AiInformation = aiInformation
 	c.JSON(http.StatusOK, res)
 }
@@ -83,18 +84,19 @@ func CreateStreamSessionAndSendMessage(c *gin.Context) {
 	c.Header("X-Accel-Buffering", "no") // 禁止代理缓存
 
 	// 先创建会话并立即把 sessionId 下发给前端，随后再开始流式输出
-	sessionID, code_ := session.CreateStreamSessionOnly(userName, req.UserQuestion)
+	sessionId, code_ := session.CreateStreamSessionOnly(userName, req.UserQuestion)
+
 	if code_ != code.CodeSuccess {
 		c.SSEvent("error", gin.H{"message": "Failed to create session"})
 		return
 	}
 
 	// 先把 sessionId 通过 data 事件发送给前端，前端据此绑定当前会话，侧边栏即可出现新标签
-	c.Writer.WriteString(fmt.Sprintf("data: {\"sessionId\": \"%s\"}\n\n", sessionID))
+	c.Writer.WriteString(fmt.Sprintf("data: {\"sessionId\": \"%s\"}\n\n", sessionId))
 	c.Writer.Flush()
 
 	// 然后开始把本次回答进行流式发送（包含最后的 [DONE]）
-	code_ = session.StreamMessageToExistingSession(userName, sessionID, req.UserQuestion, req.ModelType, http.ResponseWriter(c.Writer))
+	code_ = session.StreamMessageToExistingSession(userName, sessionId, req.UserQuestion, req.ModelType, http.ResponseWriter(c.Writer))
 	if code_ != code.CodeSuccess {
 		c.SSEvent("error", gin.H{"message": "Failed to send message"})
 		return
@@ -121,6 +123,7 @@ func ChatGenerateSend(c *gin.Context) {
 		c.JSON(http.StatusOK, res.CodeOf(code.CodeInvalidParams))
 		return
 	}
+
 	// 发送消息，并会将AI回答返回
 	aiInformation, code_ := session.ChatGenerateSend(userName, req.SessionID, req.UserQuestion, req.ModelType)
 

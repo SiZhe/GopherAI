@@ -1,3 +1,6 @@
+/*
+/ aihepler 是对model的封装
+*/
 package aihelper
 
 import (
@@ -9,7 +12,7 @@ import (
 )
 
 type AIHelper struct {
-	model    AIModel
+	model    RagAIModel
 	messages []*model.Message
 	mtx      sync.RWMutex
 	//一个会话绑定一个AIHelper
@@ -17,8 +20,8 @@ type AIHelper struct {
 	saveFunc  func(*model.Message) (*model.Message, error)
 }
 
-// NewAIHelper 创建新的AIHelper实例
-func NewAIHelper(model_ AIModel, SessionID string) *AIHelper {
+// 创建新的AIHelper实例
+func NewAIHelper(model_ RagAIModel, SessionID string) *AIHelper {
 	return &AIHelper{
 		model:     model_,
 		messages:  make([]*model.Message, 0),
@@ -40,9 +43,8 @@ func (a *AIHelper) AddMessage(content string, userName string, isUser bool, mode
 	msg := model.Message{
 		SessionID: a.SessionID,
 		UserName:  userName,
-		Content:   content,
-		IsUser:    isUser,
-		ModelType: modelType,
+		Content:   content, IsUser: isUser,
+		ModelType: a.model.GetModelType(),
 	}
 	a.messages = append(a.messages, &msg)
 	if save {
@@ -53,7 +55,7 @@ func (a *AIHelper) AddMessage(content string, userName string, isUser bool, mode
 	}
 }
 
-// SaveMessage 保存消息到数据库（通过回调函数避免循环依赖）
+// 保存消息到数据库（通过回调函数避免循环依赖）
 // 通过传入func，自己调用外部的保存函数，即可支持同步异步等多种策略
 func (a *AIHelper) SetSaveFunc(saveFunc func(*model.Message) (*model.Message, error)) {
 	a.saveFunc = saveFunc
@@ -68,7 +70,7 @@ func (a *AIHelper) GetMessages() []*model.Message {
 	return out
 }
 
-// GetModelType 获取模型类型
+// 获取模型类型
 func (a *AIHelper) GetModelType() string {
 	return a.model.GetModelType()
 }

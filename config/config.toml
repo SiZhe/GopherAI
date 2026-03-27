@@ -18,15 +18,14 @@ password = ""
 db = 0
 
 [emailConfig]
-authcode = "fzqiadnbfdnhbhcg"
+authcode = "bllmlbauutccdahf"
 email = "1765477265@qq.com"
 
 [jwtConfig]
 expire_duration= 168
 issuer = "Lisizhe"
 subject= "GopherAI"
-key= "GopherAI-v1-Lisizhe"
-
+key= "GopherAI-v2-Lisizhe"
 
 [rabbitmqConfig]
 host= "127.0.0.1"
@@ -34,3 +33,10 @@ port= 5672
 username= "root"
 password= "002522"
 vhost= "/"
+
+[milvusConfig]
+address= "localhost:19530"
+databaseName="GopherAI"
+
+[ragConfig]
+topK=3
