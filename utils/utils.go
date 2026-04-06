@@ -82,3 +82,43 @@ func ValidateFile(file *multipart.FileHeader) error {
 func CleanViolateSymbols(s string) string {
 	return regexp.MustCompile(`[^a-zA-Z0-9_]`).ReplaceAllString(s, "")
 }
+
+// 返回：IP, 浏览器(含版本号)
+func ParseIPAndBrowser(deviceInfo string) (string, string) {
+	// 1. 提取IP
+	ipRegex := regexp.MustCompile(`^(?:\d{1,3}\.){3}\d{1,3}`)
+	ip := ipRegex.FindString(deviceInfo)
+	if ip == "" {
+		return "", "unknown"
+	}
+
+	// 去掉IP，剩下的是UA
+	ua := strings.TrimPrefix(deviceInfo, ip)
+
+	var browser, version string
+
+	// 解析浏览器 + 版本
+	switch {
+	case regexp.MustCompile(`Version\/(\d+\.\d+)`).MatchString(ua):
+		browser = "Safari"
+		version = regexp.MustCompile(`Version\/(\d+\.\d+)`).FindStringSubmatch(ua)[1]
+
+	case regexp.MustCompile(`Chrome\/(\d+\.\d+)`).MatchString(ua):
+		browser = "Chrome"
+		version = regexp.MustCompile(`Chrome\/(\d+\.\d+)`).FindStringSubmatch(ua)[1]
+
+	case regexp.MustCompile(`Edg\/(\d+\.\d+)`).MatchString(ua):
+		browser = "Edge"
+		version = regexp.MustCompile(`Edg\/(\d+\.\d+)`).FindStringSubmatch(ua)[1]
+
+	case regexp.MustCompile(`Firefox\/(\d+\.\d+)`).MatchString(ua):
+		browser = "Firefox"
+		version = regexp.MustCompile(`Firefox\/(\d+\.\d+)`).FindStringSubmatch(ua)[1]
+
+	default:
+		return ip, "unknown"
+	}
+
+	// 把浏览器 + 版本拼在一起返回
+	return ip, browser + " " + version
+}

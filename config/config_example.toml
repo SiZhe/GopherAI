@@ -22,10 +22,11 @@ authcode = "********"
 email = "**********"
 
 [jwtConfig]
-expire_duration= 168
+accessExpire = 15
+refreshExpire = 168
 issuer = "Lisizhe"
 subject= "GopherAI"
-key= "********"
+key= "GopherAI-v2-Lisizhe"
 
 [rabbitmqConfig]
 host= "127.0.0.1"

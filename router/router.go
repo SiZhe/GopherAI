@@ -49,7 +49,7 @@ func initRouter() *gin.Engine {
 	enterRouter := r.Group("/api/v2")
 	{
 		UserGroup := enterRouter.Group("/user")
-		RegisterUserRouter(UserGroup)
+		UserRouter(UserGroup)
 	}
 
 	//后续登录的接口需要jwt鉴权
@@ -64,6 +64,13 @@ func initRouter() *gin.Engine {
 		FileGroup.Use(jwt.Auth)
 		FileRouter(FileGroup)
 	}
+
+	{
+		DeviceGroup := enterRouter.Group("/device")
+		DeviceGroup.Use(jwt.Auth)
+		DeviceRouter(DeviceGroup)
+	}
+
 	return r
 }
 

@@ -48,3 +48,17 @@ func CheckCaptchaForEmail(email, userInput string) (bool, error) {
 	}
 	return flag, nil
 }
+
+func CheckTokenInBlackList(token string) bool {
+	return Rdb.Exists(ctx, "blackList:"+token).Val() == 1
+}
+
+// 加入黑名单
+func AddToBlackList(token string, expire time.Duration) error {
+	return Rdb.Set(ctx, "blackList:"+token, "1", expire).Err()
+}
+
+// 加入黑名单
+func DeleteFromBlackList(token string) error {
+	return Rdb.Del(ctx, "blackList:"+token).Err()
+}

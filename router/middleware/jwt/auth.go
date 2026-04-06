@@ -2,14 +2,14 @@ package jwt
 
 import (
 	"GopherAI/common/code"
-	"GopherAI/router/controller"
+	response "GopherAI/router/controller"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
+/*
 func Auth(c *gin.Context) {
 	res := new(response.Response)
 
@@ -30,8 +30,8 @@ func Auth(c *gin.Context) {
 		return
 	}
 
-	log.Println("token is ", token)
-	username, ok := ParseToken(token)
+	log.Println("token is :", token)
+	username, err := ParseToken(token)
 	if !ok {
 		c.JSON(http.StatusOK, res.CodeOf(code.CodeInvalidToken))
 		// 验证不通过，直接断开
@@ -40,5 +40,33 @@ func Auth(c *gin.Context) {
 	}
 
 	c.Set("userName", username)
+	c.Next()
+}
+*/
+
+func Auth(c *gin.Context) {
+	res := new(response.Response)
+
+	// 从cookie中获取 access_token
+	token, err := c.Cookie("access_token")
+	if err != nil {
+		c.JSON(http.StatusOK, res.CodeOf(code.CodeNotLogin))
+		c.Abort()
+		return
+	}
+
+	log.Println("access token is :", token)
+
+	deviceId := c.ClientIP() + c.GetHeader("user-agent")
+
+	claims, err := ParseToken(token, deviceId)
+	if err != nil {
+		c.JSON(http.StatusOK, res.CodeOf(code.CodeInvalidAccessToken))
+		// 验证不通过，直接断开
+		c.Abort()
+		return
+	}
+
+	c.Set("userName", claims.Username)
 	c.Next()
 }

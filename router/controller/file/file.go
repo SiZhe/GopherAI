@@ -29,7 +29,7 @@ func UploadRagFile(c *gin.Context) {
 	username := c.GetString("userName")
 	if username == "" {
 		log.Println("Username not found in context")
-		c.JSON(http.StatusOK, res.CodeOf(code.CodeInvalidToken))
+		c.JSON(http.StatusOK, res.CodeOf(code.CodeInvalidAccessToken))
 		return
 	}
 
@@ -37,7 +37,7 @@ func UploadRagFile(c *gin.Context) {
 	sessionId := c.PostForm("sessionId")
 	if sessionId == "" {
 		log.Println("SessionId not found in context")
-		c.JSON(http.StatusOK, res.CodeOf(code.CodeInvalidToken))
+		c.JSON(http.StatusOK, res.CodeOf(code.CodeInvalidAccessToken))
 		return
 	} else {
 		fmt.Println(sessionId)

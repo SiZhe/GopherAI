@@ -46,3 +46,14 @@ func CreateUser(username string, email string, password string) (*model.User, bo
 
 	return user, true
 }
+
+func GetUsernameByEmail(email string) (error, string) {
+	var user model.User
+	err := mysql.DB.Where("email = ?", email).First(&user).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return err, ""
+	}
+
+	return nil, user.Username
+}

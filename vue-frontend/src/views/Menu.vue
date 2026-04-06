@@ -13,32 +13,79 @@
             <p>与AI进行智能对话</p>
           </div>
         </el-card>
-<!--        <el-card class="menu-item" @click="$router.push('/image-recognition')">-->
-<!--          <div class="card-content">-->
-<!--            <el-icon size="48" color="#67c23a"><Camera /></el-icon>-->
-<!--            <h3>图像识别</h3>-->
-<!--            <p>上传图片进行AI识别</p>-->
-<!--          </div>-->
-<!--        </el-card>-->
+        <el-card class="menu-item" @click="openDeviceDrawer">
+          <div class="card-content">
+            <el-icon size="48" color="#67c23a"><Monitor /></el-icon>
+            <h3>设备管理</h3>
+            <p>管理您的登录设备</p>
+          </div>
+        </el-card>
       </div>
     </el-main>
+
+    <el-drawer
+      v-model="deviceDrawerVisible"
+      title="设备管理"
+      size="400px"
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+    >
+      <div class="device-list-container">
+        <div class="drawer-header">
+          <span class="header-title">在线设备</span>
+          <button
+            class="simple-refresh-btn"
+            @click="loadDeviceList"
+            :disabled="deviceListLoading"
+          >
+            {{ deviceListLoading ? '加载中...' : '刷新' }}
+          </button>
+        </div>
+        <div v-if="deviceListLoading" class="loading-text">加载中...</div>
+        <div v-else-if="devices.length === 0" class="empty-text">暂无在线设备</div>
+        <div v-else class="device-list">
+          <div v-for="(device, index) in devices" :key="index" class="device-item">
+            <div class="device-info">
+              <div class="device-icon">💻</div>
+              <div class="device-details">
+                <div class="device-browser">{{ device.deviceBrowser }}</div>
+                <div class="device-ip">IP: {{ device.deviceIp }}</div>
+                <div class="device-time">登录时间: {{ formatLoginTime(device.loginTime) }}</div>
+              </div>
+            </div>
+            <button
+              class="simple-offline-btn"
+              @click="handleOfflineDevice(device)"
+              :disabled="device.offlineLoading"
+            >
+              {{ device.offlineLoading ? '下线中...' : '下线' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
 <script>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-//import { ChatDotRound, Camera } from '@element-plus/icons-vue'
-import { ChatDotRound,} from '@element-plus/icons-vue'
+import { logout, getDeviceList, offlineDevice } from '../utils/api'
+import { ChatDotRound, Monitor } from '@element-plus/icons-vue'
 
 export default {
   name: 'MenuView',
   components: {
     ChatDotRound,
-    //Camera
+    Monitor
   },
   setup() {
     const router = useRouter()
+
+    const deviceDrawerVisible = ref(false)
+    const devices = ref([])
+    const deviceListLoading = ref(false)
 
     const handleLogout = async () => {
       try {
@@ -47,16 +94,96 @@ export default {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        localStorage.removeItem('token')
-        ElMessage.success('退出登录成功')
+
+        const ok = await logout()
+        if (ok) {
+          ElMessage.success('退出登录成功')
+        } else {
+          ElMessage.error('退出登录失败，请重试')
+        }
         router.push('/login')
-      } catch {
-        // 用户取消操作
+      } catch (err) {
+        console.error('退出登录取消或失败:', err)
       }
     }
 
+    const openDeviceDrawer = async () => {
+      deviceDrawerVisible.value = true
+      await loadDeviceList()
+    }
+
+    const loadDeviceList = async () => {
+      try {
+        deviceListLoading.value = true
+        const result = await getDeviceList()
+        if (result.success) {
+          devices.value = result.devices.map(device => ({
+            ...device,
+            offlineLoading: false
+          }))
+        } else {
+          ElMessage.error('获取设备列表失败')
+        }
+      } catch (err) {
+        console.error('加载设备列表失败:', err)
+        ElMessage.error('加载设备列表失败')
+      } finally {
+        deviceListLoading.value = false
+      }
+    }
+
+    const handleOfflineDevice = async (device) => {
+      try {
+        await ElMessageBox.confirm(
+          `确定要下线此设备吗？\n浏览器: ${device.deviceBrowser}\nIP: ${device.deviceIp}`,
+          '设备下线确认',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+
+        device.offlineLoading = true
+        const success = await offlineDevice(device.deviceIp, device.deviceBrowser)
+        
+        if (success) {
+          ElMessage.success('设备下线成功')
+          await loadDeviceList()
+        } else {
+          ElMessage.error('设备下线失败')
+        }
+      } catch (err) {
+        if (err !== 'cancel') {
+          console.error('设备下线失败:', err)
+          ElMessage.error('设备下线失败')
+        }
+      } finally {
+        device.offlineLoading = false
+      }
+    }
+
+    const formatLoginTime = (time) => {
+      if (!time) return ''
+      const date = new Date(time)
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+
     return {
-      handleLogout
+      handleLogout,
+      deviceDrawerVisible,
+      devices,
+      deviceListLoading,
+      openDeviceDrawer,
+      loadDeviceList,
+      handleOfflineDevice,
+      formatLoginTime
     }
   }
 }
@@ -243,5 +370,127 @@ export default {
 .menu-item:hover p {
   color: #34495e;
   transform: translateY(-3px);
+}
+
+.device-list-container {
+  padding: 20px 0;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.loading-text,
+.empty-text {
+  text-align: center;
+  padding: 40px 20px;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.device-list {
+  padding: 0 20px;
+}
+
+.device-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.device-item:hover {
+  background: #e9ecef;
+  transform: translateX(4px);
+}
+
+.device-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+}
+
+.device-icon {
+  font-size: 32px;
+}
+
+.device-details {
+  flex: 1;
+}
+
+.device-browser {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.device-ip,
+.device-time {
+  font-size: 12px;
+  color: #7f8c8d;
+  margin-bottom: 2px;
+}
+
+.simple-refresh-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+}
+
+.simple-refresh-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
+.simple-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.simple-offline-btn {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #f56c6c 0%, #e64242 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(245, 108, 108, 0.2);
+}
+
+.simple-offline-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(245, 108, 108, 0.3);
+}
+
+.simple-offline-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

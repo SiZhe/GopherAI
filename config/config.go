@@ -41,10 +41,11 @@ type EmailConfig struct {
 }
 
 type JwtConfig struct {
-	ExpireDuration int    `toml:"expire_duration"`
-	Issuer         string `toml:"issuer"`
-	Subject        string `toml:"subject"`
-	Key            string `toml:"key"`
+	AccessExpire  int    `toml:"accessExpire"`
+	RefreshExpire int    `toml:"refreshExpire"`
+	Issuer        string `toml:"issuer"`
+	Subject       string `toml:"subject"`
+	Key           string `toml:"key"`
 }
 
 type RabbitmqConfig struct {

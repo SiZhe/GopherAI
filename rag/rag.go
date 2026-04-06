@@ -96,7 +96,7 @@ func NewRAGRetriever(ctx context.Context, username string, sessionId string, top
 	if err != nil {
 		panic(err)
 	}
-
+	fmt.Println("你好！！")
 	return &RAGRetriever{
 		embedding: embeddingModel,
 		retriever: retrieve,

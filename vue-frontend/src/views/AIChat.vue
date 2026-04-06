@@ -4,7 +4,9 @@
     <div class="session-list">
       <div class="session-list-header">
         <span>会话列表</span>
-        <button class="new-chat-btn" @click="createNewSession">＋ 新聊天</button>
+        <div class="header-buttons">
+          <button class="new-chat-btn" @click="createNewSession">＋ 新聊天</button>
+        </div>
       </div>
       <ul class="session-list-ul">
         <li
@@ -83,7 +85,7 @@
 
 
 import { ref, nextTick, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '../utils/api'
 
 export default {
@@ -102,7 +104,6 @@ export default {
     const isStreaming = ref(false)
     const uploading = ref(false)
     const fileInput = ref(null)
-
 
     const renderMarkdown = (text) => {
       if (!text && text !== '') return ''
@@ -330,8 +331,7 @@ export default {
         : '/api/AI/chat/send-stream'           
 
       const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        'Content-Type': 'application/json'
       }
 
       const body = tempSession.value
@@ -343,7 +343,9 @@ export default {
         const response = await fetch(url, {
           method: 'POST',
           headers,
-          body: JSON.stringify(body)
+          body: JSON.stringify(body),
+          // 由后端 httpOnly cookie 鉴权，fetch 需要显式携带凭证
+          credentials: 'include'
         })
 
         if (!response.ok) {
@@ -553,21 +555,18 @@ export default {
             'Content-Type': 'multipart/form-data'
           }
         })
-
         if (response.data && response.data.status_code === 1000) {
-          ElMessage.success(`文件上传成功`)
+          ElMessage.success('文件上传成功！')
+          // 清空文件输入
+          if (fileInput.value) fileInput.value.value = ''
         } else {
-          ElMessage.error(response.data?.status_msg || '上传失败')
+          ElMessage.error(response.data?.status_msg || '文件上传失败')
         }
-      } catch (error) {
-        console.error('File upload error:', error)
-        ElMessage.error('文件上传失败')
+      } catch (err) {
+        console.error('文件上传失败:', err)
+        ElMessage.error('文件上传失败，请重试')
       } finally {
         uploading.value = false
-        // 清空文件输入
-        if (fileInput.value) {
-          fileInput.value.value = ''
-        }
       }
     }
 
@@ -575,7 +574,6 @@ export default {
       loadSessions()
     })
 
-    // expose to template
     return {
       sessions: computed(() => Object.values(sessions.value)),
       currentSessionId,
@@ -595,6 +593,7 @@ export default {
       switchSession,
       syncHistory,
       sendMessage,
+      scrollToBottom,
       triggerFileUpload,
       handleFileUpload
     }
@@ -656,17 +655,23 @@ export default {
   align-items: center;
 }
 
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
 .new-chat-btn {
   width: 100%;
-  padding: 12px 0;
+  padding: 10px 0;
   cursor: pointer;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.28);
+  box-shadow: 0 3px 12px rgba(102, 126, 234, 0.28);
   transition: all 0.25s ease;
   position: relative;
   overflow: hidden;
@@ -1003,3 +1008,4 @@ export default {
   cursor: not-allowed;
 }
 </style>
+

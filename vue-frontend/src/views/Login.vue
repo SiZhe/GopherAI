@@ -86,7 +86,6 @@ export default {
           password: loginForm.value.password
         })
         if (response.data.status_code === 1000) {
-          localStorage.setItem('token', response.data.token)
           ElMessage.success('登录成功')
           router.push('/menu')
         } else {
