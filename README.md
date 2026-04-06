@@ -32,3 +32,12 @@
 大语言模型不再一股脑的输出 **整段消息**。
 
 ![流式输出](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E6%B5%81%E5%BC%8F%E8%BE%93%E5%87%BA.png)
+
+## 设备管理
+你可以查看你登录的设备；
+
+![设备管理](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E8%AE%BE%E5%A4%87%E7%AE%A1%E7%90%86.png)
+
+并可以控制其登录状态。
+
+![设备管理列表](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E8%AE%BE%E5%A4%87%E7%AE%A1%E7%90%86%E5%88%97%E8%A1%A8.png)
