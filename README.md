@@ -63,3 +63,27 @@
 5. **设备管理**:  
     1.登录后，将username,device_info,at,rt存入数据库;  
     2.下线，从数据库中删除对应设备，并将at，rt加入jwt黑名单以实现禁止访问;  
+
+### 2.检索增强生成(RAG)
+
+**准备**  
+    (1)获取embedding model -> 将文字转化为多维向量  
+    (2)向量数据库: milvus
+1. 将上传文件保存至服务端，再将文件通过eino框架中 **splitter.Transformer** 进行分割得到 **[]schema.Document**
+2. 通过 **indexer.Store** 将 **[]schema.Document** 保存至向量数据库
+3. 判断判断该对话中用户是否上传文件判断是否要进行RAG
+4. 通过 **retriever.Retrieve** 对用户的最后一条信息进行检索
+5. 构建提示词并加入到对话上下文中
+
+### 3.流式输出
+
+SSE (Server-Sent Events) :一种基于 HTTP 协议的 **服务器单向推送** 技术，允许服务器主动、持续地将实时数据发送到客户端  
+每条消息以 \n\n 分隔  
+
+**实现**  
+    c.Header("Content-Type", "text/event-stream")  
+    c.Header("Cache-Control", "no-cache")  
+    c.Header("Connection", "keep-alive")  
+    c.Header("Access-Control-Allow-Origin", "*")  
+
+c.writer.Write([]byte("data: " + msg + "\n\n"))
