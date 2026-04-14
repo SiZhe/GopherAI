@@ -85,6 +85,10 @@ func StoreUploadsFiles(username string, sessionId string, file *multipart.FileHe
 
 func TransformerUploadsFiles(ctx context.Context, filePath string) ([]*schema.Document, error) {
 	// 准备分割器
+	//HeaderSplitter（标题分块）
+	//RecursiveSplitter（递归分块）
+	//SeparatorSplitter（分隔符分块）
+	//SentenceSplitter（句子分块）
 	splitter, err := markdown.NewHeaderSplitter(ctx, &markdown.HeaderConfig{
 		Headers: map[string]string{
 			"#":   "h1",

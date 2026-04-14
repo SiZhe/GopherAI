@@ -23,10 +23,10 @@ func GenerateToken(id int64, username string, deviceId string, expire time.Durat
 		Username: username,
 		DeviceId: deviceId,
 		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:  config.GetConfig().Issuer,
+			Subject: config.GetConfig().Subject,
 			// 一小时的有效期
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expire)),
-			Issuer:    config.GetConfig().Issuer,
-			Subject:   config.GetConfig().Subject,
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}

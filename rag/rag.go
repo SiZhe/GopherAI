@@ -5,11 +5,16 @@ import (
 	"GopherAI/utils"
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/cloudwego/eino-ext/components/embedding/openai"
 	milvusIndexer "github.com/cloudwego/eino-ext/components/indexer/milvus"
+	"github.com/cloudwego/eino-ext/components/model/ark"
 	milvusRetriever "github.com/cloudwego/eino-ext/components/retriever/milvus"
 	"github.com/cloudwego/eino/components/retriever"
+
+	"github.com/cloudwego/eino/flow/retriever/multiquery"
+
 	"github.com/cloudwego/eino/schema"
 	"github.com/milvus-io/milvus-sdk-go/v2/entity"
 )
@@ -21,7 +26,8 @@ type RAGIndexer struct {
 
 type RAGRetriever struct {
 	embedding *openai.Embedder
-	retriever *milvusRetriever.Retriever
+	//retriever *milvusRetriever.Retriever
+	retriever retriever.Retriever
 }
 
 func NewRAGIndexer(ctx context.Context, username string, sessionId string) *RAGIndexer {
@@ -82,6 +88,7 @@ func NewRAGRetriever(ctx context.Context, username string, sessionId string, top
 	collection := utils.CleanViolateSymbols(fmt.Sprintf("user_%s_session_%s", username, sessionId))
 	fmt.Println(collection)
 
+	// 普通retrieve
 	retrieve, err := milvusRetriever.NewRetriever(ctx, &milvusRetriever.RetrieverConfig{
 		Client: milvus.GetMilvusClient(),
 		// 每个对话一个表
@@ -96,10 +103,33 @@ func NewRAGRetriever(ctx context.Context, username string, sessionId string, top
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("你好！！")
+
+	//multiquery
+	llm, err := ark.NewChatModel(ctx, &ark.ChatModelConfig{
+		APIKey: os.Getenv("ARK_API_KEY"),
+		Model:  os.Getenv("ARK_DOUBAO_SEED_20"),
+	})
+	if err != nil {
+		return nil
+	}
+
+	newRetriever, err := multiquery.NewRetriever(ctx, &multiquery.Config{
+		RewriteLLM:      llm,
+		RewriteTemplate: nil,
+		QueryVar:        "",
+		LLMOutputParser: nil,
+		MaxQueriesNum:   3,
+		OrigRetriever:   retrieve,
+		FusionFunc:      nil,
+	})
+	if err != nil {
+		return nil
+	}
+
+	//fmt.Println("你好！！")
 	return &RAGRetriever{
 		embedding: embeddingModel,
-		retriever: retrieve,
+		retriever: newRetriever,
 	}
 }
 

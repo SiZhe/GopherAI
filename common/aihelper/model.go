@@ -239,3 +239,7 @@ func (ragAIModel *RagArkAIModel) GetUserName() string {
 func (ragAIModel *RagArkAIModel) GetSessionId() string {
 	return ragAIModel.sessionId
 }
+
+func (ragAIModel *RagArkAIModel) GetChatModel() model.ToolCallingChatModel {
+	return ragAIModel.llm
+}
