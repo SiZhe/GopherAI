@@ -2,8 +2,6 @@ package aihelper
 
 import (
 	"GopherAI/agent"
-	"GopherAI/config"
-	"GopherAI/rag"
 	"context"
 	"fmt"
 	"io"
@@ -196,33 +194,50 @@ func (ragAIModel *RagArkAIModel) GenerateResponse(ctx context.Context, messages 
 }
 
 func (ragAIModel *RagArkAIModel) StreamResponse(ctx context.Context, messages []*schema.Message, cb StreamCallback) (string, error) {
-	isExistFiles, err := rag.IsExistUploadsFiles(ragAIModel.username, ragAIModel.sessionId)
-	if err != nil {
-		return "", err
-	}
-	fmt.Printf("isExistFiles:%v\n\n", isExistFiles)
-
-	// 有文件就rag，没有文件就不用
-	if isExistFiles || len(messages) == 0 {
-		fmt.Println("执行rag检索....\n")
-		retriever := rag.NewRAGRetriever(ctx, ragAIModel.username, ragAIModel.sessionId, config.GetConfig().RagConfig.TopK)
-
-		//取最后一条消息
-		query := messages[len(messages)-1].Content
-		fmt.Printf("query:%v\n\n", query)
-
-		retrieveDocs, err := retriever.RetrieverUploadsFiles(ctx, query)
+	// 链式的 RAG 结构
+	/*
+		isExistFiles, err := rag.IsExistUploadsFiles(ragAIModel.username, ragAIModel.sessionId)
 		if err != nil {
 			return "", err
 		}
+		fmt.Printf("isExistFiles:%v\n\n", isExistFiles)
 
-		// 构建提示词
-		ragPrompt := rag.BuildRAGPrompt(query, retrieveDocs)
-		fmt.Printf("ragPrompt:%v\n\n", ragPrompt)
+		// 有文件就rag，没有文件就不用
+		if isExistFiles || len(messages) == 0 {
+			fmt.Println("执行rag检索....\n")
+			retriever := rag.NewRAGRetriever(ctx, ragAIModel.username, ragAIModel.sessionId, config.GetConfig().RagConfig.TopK)
 
-		// 替换最后一条消息为 RAG 提示词
-		messages[len(messages)-1] = schema.UserMessage(ragPrompt)
+			//取最后一条消息
+			query := messages[len(messages)-1].Content
+			fmt.Printf("query:%v\n\n", query)
+
+			retrieveDocs, err := retriever.RetrieverUploadsFiles(ctx, query)
+			if err != nil {
+				return "", err
+			}
+
+			// 构建提示词
+			ragPrompt := rag.BuildRAGPrompt(query, retrieveDocs)
+			fmt.Printf("ragPrompt:%v\n\n", ragPrompt)
+
+			// 替换最后一条消息为 RAG 提示词
+			messages[len(messages)-1] = schema.UserMessage(ragPrompt)
+		}
+	*/
+
+	// 获取ragReActAgent
+	ragReActAgent, err := agent.NewRagReActAgent(ragAIModel.llm)
+	if err != nil {
+		return "", fmt.Errorf("ragReActAgent generate failed: %v", err)
 	}
+	// 得到 ragReActAgent 结果
+	lastMessage, err := ragReActAgent.Get(messages)
+	if err != nil {
+		return "", fmt.Errorf(" ragReActAgent.Get() failed: %v", err)
+	}
+	fmt.Printf("[ragReActAgent result] : %s\n", lastMessage.Content)
+
+	messages[len(messages)-1] = schema.UserMessage(lastMessage.Content)
 
 	stream, err := ragAIModel.llm.Stream(ctx, messages)
 	if err != nil {
