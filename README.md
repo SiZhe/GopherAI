@@ -14,7 +14,16 @@
 
 ![创建聊天](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E5%88%9B%E5%BB%BA%E8%81%8A%E5%A4%A9.png)
 
-## 上传文件
+> **会话上下文记忆** （模型知道用户发送多次“你好”）
+>
+![上下文记忆](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E4%B8%8A%E4%B8%8B%E6%96%87%E8%AE%B0%E5%BF%86.png)
+
+## 流式会话模式
+大语言模型不再一股脑的输出 **整段消息**。
+
+![流式输出](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E6%B5%81%E5%BC%8F%E8%BE%93%E5%87%BA.png)
+
+## 上传文件构建知识库-检索增强生成(RAG)
 你可以上传专属于该对话的文件(目前仅限于.md)以构建知识库。
 > **未构建知识库**
 > 
@@ -28,10 +37,15 @@
 > 
 ![已构建知识库](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E5%B7%B2%E6%9E%84%E5%BB%BA%E7%9F%A5%E8%AF%86%E5%BA%93.png)
 
-## 流式会话模式
-大语言模型不再一股脑的输出 **整段消息**。
+## ReAct Agent for RAG
+通过ReAct Agent智能管理RAG。
+> **未构建 ReAct Agent**: 每次提问都会使用RAG
+>
+![NullRagReActAgent](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/NullRagReActAgent.png)
 
-![流式输出](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E6%B5%81%E5%BC%8F%E8%BE%93%E5%87%BA.png)
+> **构建 ReAct Agent for RAG**: Agent根据用户问题智能判断 **本次问题是否需要RAG**
+>
+![RagReActAgent](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/RagReActAgent.png)
 
 ## 设备管理
 你可以查看你登录的设备；
