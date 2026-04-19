@@ -64,9 +64,9 @@
 
 ![设备管理列表](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/%E8%AE%BE%E5%A4%87%E7%AE%A1%E7%90%86%E5%88%97%E8%A1%A8.png)
 
-## 技术细节
+# 技术细节
 
-### 1.JWT与设备管理
+## 1.JWT与设备管理
 
 1. **jwt结构**：base64(header + payload) + 签名;  
     token = base64(header + payload) + HS256(base64(header + payload)  
@@ -86,7 +86,7 @@
     1.登录后，将username,device_info,at,rt存入数据库;  
     2.下线，从数据库中删除对应设备，并将at，rt加入jwt黑名单以实现禁止访问;  
 
-### 2.流式输出
+## 2.流式输出
 
 SSE (Server-Sent Events) :一种基于 HTTP 协议的 **服务器单向推送** 技术，允许服务器主动、持续地将实时数据发送到客户端  
 每条消息以 \n\n 分隔
@@ -99,7 +99,7 @@ c.Header("Access-Control-Allow-Origin", "*")
 
 c.writer.Write([]byte("data: " + msg + "\n\n"))
 
-### 3.检索增强生成(RAG)
+## 3.检索增强生成(RAG)
 
 **准备**  
     (1)获取embedding model -> 将文字转化为多维向量  
@@ -111,11 +111,11 @@ c.writer.Write([]byte("data: " + msg + "\n\n"))
 5. 构建提示词并加入到对话上下文中
 
 
-### 4.什么是ReAct？
+## 4.什么是ReAct？
 
 ReAct 编排是一种让大型语言模型（LLM）更智能地执行任务的策略，它的核心思想是让 LLM 像人一样**思考（Reason）和行动（Act）**。想象一下，你正在解决一个复杂的问题：你不会一下子就得出答案，而是会先思考问题，然后采取一些行动（比如查找信息、执行计算），根据行动的结果再进一步思考，如此循环，直到问题解决。ReAct 就是让 LLM 模拟这个过程。
 
-## ReAct 的核心原理
+### ReAct 的核心原理
 
 ReAct 的名字来源于两个关键部分：
 
@@ -126,7 +126,7 @@ ReAct 的名字来源于两个关键部分：
     - **代码解释器**：运行代码来处理数据或验证逻辑。
     - **API 接口**：与外部系统交互，比如查询天气、发送邮件等。
 
-## ReAct 的工作流程
+### ReAct 的工作流程
 
 ReAct 的工作流程可以概括为以下步骤：
 
@@ -139,7 +139,7 @@ ReAct 的工作流程可以概括为以下步骤：
 
 ![ReAct](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/ReAct.png)
 
-## 为什么 ReAct 如此有效？
+### 为什么 ReAct 如此有效？
 
 ReAct 编排之所以强大，主要有以下几个原因：
 
