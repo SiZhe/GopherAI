@@ -50,7 +50,7 @@
 > **ReAct Agent 可使用以下3个Tool:**    
 1.检查用户在当前会话中是否有上传的文档    
 2.使用 RAG 检索文档    
-3.使用小型llm判断是否需要使用 RAG 技术
+3.使用小型 LLM 判断是否需要使用 RAG 技术
 
 ![ReActTools](https://github.com/SiZhe/readmeImage/blob/main/GopherAI/ReActTools.png)
 
