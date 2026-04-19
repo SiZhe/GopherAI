@@ -54,6 +54,9 @@ func CreateGenerateSessionAndSendMessage(userName string, userQuestion string, m
 		return "", "", code.AIModelFail
 	}
 
+	// 在第一次创建这个对话的时候，给这个helper的llm加上系统提示词
+	helper.AddInitialMessages()
+
 	//3：生成AI回复
 	aiResponse, err_ := helper.GenerateResponse(userName, ctx, userQuestion)
 	if err_ != nil {
@@ -101,7 +104,51 @@ func CreateStreamSessionOnly(userName string, userQuestion string) (string, code
 }
 
 func ChatStreamSend(userName string, sessionID string, userQuestion string, modelType string, writer http.ResponseWriter) code.Code {
-	return StreamMessageToExistingSession(userName, sessionID, userQuestion, modelType, writer)
+	// 确保 writer 支持 Flush
+	flusher, ok := writer.(http.Flusher)
+	if !ok {
+		log.Println("StreamMessageToExistingSession: streaming unsupported")
+		return code.CodeServerBusy
+	}
+
+	config := map[string]string{
+		"username":  userName,
+		"sessionId": sessionID,
+	}
+	helper, err := aihelper.GetGlobalManager().GetOrCreateAIHelper(userName, sessionID, modelType, config)
+	if err != nil {
+		log.Println("StreamMessageToExistingSession GetOrCreateAIHelper error:", err)
+		return code.AIModelFail
+	}
+
+	cb := func(msg string) {
+		// 直接发送数据，不转义
+		// SSE 格式：data: <content>\n\n
+		log.Printf("[SSE] Sending chunk: %s (len=%d)\n", msg, len(msg))
+		_, err := writer.Write([]byte("data: " + msg + "\n\n"))
+		if err != nil {
+			log.Println("[SSE] Write error:", err)
+			return
+		}
+		flusher.Flush() //  每次必须 flush
+		log.Println("[SSE] Flushed")
+	}
+
+	_, err_ := helper.StreamResponse(userName, ctx, cb, userQuestion)
+	if err_ != nil {
+		log.Println("StreamMessageToExistingSession StreamResponse error:", err_)
+		return code.AIModelFail
+	}
+
+	_, err = writer.Write([]byte("data: [DONE]\n\n"))
+	if err != nil {
+		log.Println("StreamMessageToExistingSession write DONE error:", err)
+		return code.AIModelFail
+	}
+	flusher.Flush()
+
+	return code.CodeSuccess
+	//return StreamMessageToExistingSession(userName, sessionID, userQuestion, modelType, writer)
 }
 
 func StreamMessageToExistingSession(userName string, sessionID string, userQuestion string, modelType string, writer http.ResponseWriter) code.Code {
@@ -121,6 +168,9 @@ func StreamMessageToExistingSession(userName string, sessionID string, userQuest
 		log.Println("StreamMessageToExistingSession GetOrCreateAIHelper error:", err)
 		return code.AIModelFail
 	}
+
+	// 在第一次创建这个对话的时候，给这个helper的llm加上系统提示词
+	helper.AddInitialMessages()
 
 	cb := func(msg string) {
 		// 直接发送数据，不转义

@@ -85,7 +85,7 @@
 
 
 import { ref, nextTick, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import api from '../utils/api'
 
 export default {

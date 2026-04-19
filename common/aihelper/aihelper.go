@@ -8,6 +8,7 @@ import (
 	"GopherAI/common/rabbitmq"
 	"GopherAI/utils"
 	"context"
+	"fmt"
 	"sync"
 )
 
@@ -28,7 +29,7 @@ func NewAIHelper(model_ RagAIModel, SessionID string) *AIHelper {
 		SessionID: SessionID,
 		//异步推送到消息队列中
 		saveFunc: func(msg *model.Message) (*model.Message, error) {
-			data, err := rabbitmq.GenerateMessageMQParam(msg.SessionID, msg.Content, msg.UserName, msg.IsUser, msg.ModelType)
+			data, err := rabbitmq.GenerateMessageMQParam(msg.SessionID, msg.Content, msg.UserName, msg.IsUser, msg.Role, msg.ModelType)
 			if err != nil {
 				return msg, err
 			}
@@ -38,12 +39,38 @@ func NewAIHelper(model_ RagAIModel, SessionID string) *AIHelper {
 	}
 }
 
+func (a *AIHelper) AddInitialMessages() {
+	// 构造系统提示内容
+	content := fmt.Sprintf(`[模型角色设定]:智能对话助手。
+当前模型：%s,
+当前用户：%s
+当前会话ID：%s`,
+		a.model.GetModelType(), a.model.GetUserName(), a.model.GetSessionId())
+
+	// 初始化系统消息
+	initialMessages := &model.Message{
+		SessionID: a.model.GetSessionId(),
+		UserName:  a.model.GetUserName(),
+		Role:      "system",
+		Content:   content,
+		IsUser:    false,
+		ModelType: a.model.GetModelType(),
+	}
+
+	a.messages = append(a.messages, initialMessages)
+
+	// 把初始系统信息写入到数据库中
+	a.AddMessage(content, a.model.GetUserName(), false, "system", a.model.GetModelType(), true)
+}
+
 // addMessage 添加消息到内存中并调用自定义存储函数(存储到rabbitmq中)
-func (a *AIHelper) AddMessage(content string, userName string, isUser bool, modelType string, save bool) {
+func (a *AIHelper) AddMessage(content string, userName string, isUser bool, role string, modelType string, save bool) {
 	msg := model.Message{
 		SessionID: a.SessionID,
 		UserName:  userName,
-		Content:   content, IsUser: isUser,
+		Content:   content,
+		IsUser:    isUser,
+		Role:      role,
 		ModelType: a.model.GetModelType(),
 	}
 	a.messages = append(a.messages, &msg)
@@ -78,13 +105,14 @@ func (a *AIHelper) GetModelType() string {
 // 同步生成
 func (a *AIHelper) GenerateResponse(userName string, ctx context.Context, userQuestion string) (*model.Message, error) {
 	//调用存储函数
-	a.AddMessage(userQuestion, userName, true, a.model.GetModelType(), true)
+	a.AddMessage(userQuestion, userName, true, "user", a.model.GetModelType(), true)
 
 	a.mtx.RLock()
 	//将model.Message转化成schema.Message
 	messages := utils.ConvertToSchemaMessages(a.messages)
 	a.mtx.RUnlock()
 
+	//agent.CreatRagReActAgent(a.model.GetChatModel())
 	//调用模型生成回复
 	schemaMsg, err := a.model.GenerateResponse(ctx, messages)
 	if err != nil {
@@ -95,7 +123,7 @@ func (a *AIHelper) GenerateResponse(userName string, ctx context.Context, userQu
 	modelMsg := utils.ConvertToModelMessage(a.SessionID, userName, schemaMsg)
 
 	//调用存储函数
-	a.AddMessage(modelMsg.Content, userName, false, a.model.GetModelType(), true)
+	a.AddMessage(modelMsg.Content, userName, false, "assistant", a.model.GetModelType(), true)
 
 	return modelMsg, nil
 }
@@ -103,7 +131,7 @@ func (a *AIHelper) GenerateResponse(userName string, ctx context.Context, userQu
 // 流式生成
 func (a *AIHelper) StreamResponse(userName string, ctx context.Context, cb StreamCallback, userQuestion string) (*model.Message, error) {
 	//调用存储函数
-	a.AddMessage(userQuestion, userName, true, a.model.GetModelType(), true)
+	a.AddMessage(userQuestion, userName, true, "user", a.model.GetModelType(), true)
 
 	a.mtx.RLock()
 	messages := utils.ConvertToSchemaMessages(a.messages)
@@ -122,7 +150,7 @@ func (a *AIHelper) StreamResponse(userName string, ctx context.Context, cb Strea
 	}
 
 	//调用存储函数
-	a.AddMessage(modelMsg.Content, userName, false, a.model.GetModelType(), true)
+	a.AddMessage(modelMsg.Content, userName, false, "assistant", a.model.GetModelType(), true)
 
 	return modelMsg, nil
 }

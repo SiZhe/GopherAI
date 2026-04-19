@@ -1,6 +1,7 @@
 package aihelper
 
 import (
+	"GopherAI/agent"
 	"GopherAI/config"
 	"GopherAI/rag"
 	"context"
@@ -17,6 +18,7 @@ import (
 const (
 	DOUBAO_SEED_20 string = "DOUBAO_SEED_20"
 	DEEPSEEK_V32   string = "DEEPSEEK_V32"
+	DOUBAO_15_LITE string = "DOUBAO_15_LITE"
 )
 
 type StreamCallback func(msg string)
@@ -28,6 +30,7 @@ type RagAIModel interface {
 	GetModelType() string
 	GetUserName() string
 	GetSessionId() string
+	GetChatModel() model.ToolCallingChatModel
 }
 
 // =================== ARK实现 ===================
@@ -129,6 +132,7 @@ func NewRagArkModel(ctx context.Context, modelType string, username string, sess
 		APIKey: api_key,
 		Model:  targetModelName,
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf("create ark model failed: %v", err)
 	}
@@ -136,36 +140,53 @@ func NewRagArkModel(ctx context.Context, modelType string, username string, sess
 }
 
 func (ragAIModel *RagArkAIModel) GenerateResponse(ctx context.Context, messages []*schema.Message) (*schema.Message, error) {
-	isExistFiles, err := rag.IsExistUploadsFiles(ragAIModel.username, ragAIModel.sessionId)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("isExistFiles:%v\n\n", isExistFiles)
-
-	// 有文件就rag，没有文件就不用
-	if isExistFiles || len(messages) == 0 {
-		fmt.Println("执行rag检索....\n")
-		retriever := rag.NewRAGRetriever(ctx, ragAIModel.username, ragAIModel.sessionId, config.GetConfig().RagConfig.TopK)
-
-		//取最后一条消息
-		query := messages[len(messages)-1].Content
-		fmt.Printf("query:%v\n\n", query)
-
-		retrieveDocs, err := retriever.RetrieverUploadsFiles(ctx, query)
-		for i, doc := range retrieveDocs {
-			fmt.Printf("retrieveDocs[%v]:%v\n", i+1, doc.Content)
-		}
+	// 链式的 RAG 结构
+	/*
+		isExistFiles, err := rag.IsExistUploadsFiles(ragAIModel.username, ragAIModel.sessionId)
 		if err != nil {
 			return nil, err
 		}
+		fmt.Printf("isExistFiles:%v\n\n", isExistFiles)
 
-		// 构建提示词
-		ragPrompt := rag.BuildRAGPrompt(query, retrieveDocs)
-		fmt.Printf("ragPrompt:%v\n\n", ragPrompt)
+		// 有文件就rag，没有文件就不用
+		if isExistFiles || len(messages) == 0 {
+			fmt.Println("执行rag检索....\n")
+			retriever := rag.NewRAGRetriever(ctx, ragAIModel.username, ragAIModel.sessionId, config.GetConfig().RagConfig.TopK)
 
-		// 替换最后一条消息为 RAG 提示词
-		messages[len(messages)-1] = schema.UserMessage(ragPrompt)
+			//取最后一条消息
+			query := messages[len(messages)-1].Content
+			fmt.Printf("query:%v\n\n", query)
+
+			retrieveDocs, err := retriever.RetrieverUploadsFiles(ctx, query)
+			for i, doc := range retrieveDocs {
+				fmt.Printf("retrieveDocs[%v]:%v\n", i+1, doc.Content)
+			}
+			if err != nil {
+				return nil, err
+			}
+
+			// 构建提示词
+			ragPrompt := rag.BuildRAGPrompt(query, retrieveDocs)
+			fmt.Printf("ragPrompt:%v\n\n", ragPrompt)
+
+			// 替换最后一条消息为 RAG 提示词
+			messages[len(messages)-1] = schema.UserMessage(ragPrompt)
+		}
+	*/
+
+	// 获取ragReActAgent
+	ragReActAgent, err := agent.NewRagReActAgent(ragAIModel.llm)
+	if err != nil {
+		return nil, fmt.Errorf("ragReActAgent generate failed: %v", err)
 	}
+	// 得到 ragReActAgent 结果
+	lastMessage, err := ragReActAgent.Get(messages)
+	if err != nil {
+		return nil, fmt.Errorf(" ragReActAgent.Get() failed: %v", err)
+	}
+	fmt.Printf("[ragReActAgent result] : %s\n", lastMessage.Content)
+
+	messages[len(messages)-1] = schema.UserMessage(lastMessage.Content)
 
 	resp, err := ragAIModel.llm.Generate(ctx, messages)
 	if err != nil {
@@ -228,8 +249,8 @@ func (ragAIModel *RagArkAIModel) StreamResponse(ctx context.Context, messages []
 	return fullResp.String(), nil //返回完整内容，方便后续存储
 }
 
-func (a *RagArkAIModel) GetModelType() string {
-	return a.modelType
+func (ragAIModel *RagArkAIModel) GetModelType() string {
+	return ragAIModel.modelType
 }
 
 func (ragAIModel *RagArkAIModel) GetUserName() string {

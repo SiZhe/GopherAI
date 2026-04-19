@@ -10,6 +10,7 @@ type Message struct {
 	UserName  string    `gorm:"type:varchar(20)" json:"username"`
 	Content   string    `gorm:"type:text" json:"content"`
 	IsUser    bool      `gorm:"not null;" json:"is_user"`
+	Role      string    `gorm:"not null;type:varchar(20);check:role IN ('system','user','assistant','tool')" json:"role"`
 	ModelType string    `gorm:"not null;" json:"model_type"`
 	CreatedAt time.Time `json:"created_at"`
 }

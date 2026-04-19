@@ -56,14 +56,15 @@ func ConvertToModelMessage(sessionID string, userName string, msg *schema.Messag
 func ConvertToSchemaMessages(msgs []*model.Message) []*schema.Message {
 	schemaMsgs := make([]*schema.Message, 0, len(msgs))
 	for _, m := range msgs {
-		role := schema.Assistant
-		if m.IsUser {
-			role = schema.User
+		if m.Role == "assistant" {
+			schemaMsgs = append(schemaMsgs, schema.AssistantMessage(m.Content, nil))
+		} else if m.Role == "user" {
+			schemaMsgs = append(schemaMsgs, schema.UserMessage(m.Content))
+		} else if m.Role == "system" {
+			schemaMsgs = append(schemaMsgs, schema.SystemMessage(m.Content))
+		} else if m.Role == "tool" {
+			schemaMsgs = append(schemaMsgs, schema.ToolMessage(m.Content, ""))
 		}
-		schemaMsgs = append(schemaMsgs, &schema.Message{
-			Role:    role,
-			Content: m.Content,
-		})
 	}
 	return schemaMsgs
 }

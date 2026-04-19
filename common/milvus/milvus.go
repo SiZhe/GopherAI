@@ -15,6 +15,7 @@ var once sync.Once
 func GetMilvusClient() milvusCli.Client {
 	once.Do(func() {
 		ctx := context.Background()
+
 		cli, err := milvusCli.NewClient(ctx, milvusCli.Config{
 			Address: config.GetConfig().MilvusConfig.MilvusAddress,
 			DBName:  config.GetConfig().MilvusConfig.MilvusDb,
